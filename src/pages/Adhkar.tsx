@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Sunrise, Sunset, Heart, User, Plus, Trash2, Edit } from "lucide-react";
-import { getCustomAdhkar, saveCustomDhikr, deleteCustomDhikr, CustomDhikr } from "@/lib/storage";
+import { Sunrise, Sunset, Heart, User, Plus, Trash2, Edit, MinusCircle, RotateCcw } from "lucide-react";
+import { getCustomAdhkar, saveCustomDhikr, deleteCustomDhikr, CustomDhikr, getDhikrCounter, saveDhikrCounter, resetDhikrCounter } from "@/lib/storage";
+import { toast } from "sonner";
 
 interface Dhikr {
   id: number;
@@ -15,6 +16,7 @@ interface Dhikr {
   transliteration: string;
   translation: string;
   repetitions?: string;
+  count?: number;
 }
 
 const morningAdhkar: Dhikr[] = [
@@ -51,14 +53,16 @@ const morningAdhkar: Dhikr[] = [
     arabic: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
     transliteration: "Subhanallahi wa bihamdihi",
     translation: "Glory is to Allah and praise is to Him",
-    repetitions: "100x"
+    repetitions: "100x",
+    count: 100
   },
   {
     id: 6,
     arabic: "أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ",
     transliteration: "A'udhu bikalimatillahit-tammati min sharri ma khalaq",
     translation: "I seek refuge in the perfect words of Allah from the evil of what He has created",
-    repetitions: "3x"
+    repetitions: "3x",
+    count: 3
   },
 ];
 
@@ -151,46 +155,110 @@ const DhikrCard = ({ dhikr, onEdit, onDelete, isCustom }: {
   onEdit?: () => void;
   onDelete?: () => void;
   isCustom?: boolean;
-}) => (
-  <Card className="bg-gradient-card shadow-soft animate-fade-in">
-    <CardContent className="pt-6 space-y-3">
-      <div className="text-right">
-        <div className="flex justify-between items-start gap-2">
-          <div className="flex gap-1">
-            {isCustom && onEdit && (
-              <Button variant="ghost" size="sm" onClick={onEdit} className="h-8 w-8 p-0">
-                <Edit className="h-4 w-4" />
-              </Button>
-            )}
-            {isCustom && onDelete && (
-              <Button variant="ghost" size="sm" onClick={onDelete} className="h-8 w-8 p-0 text-destructive">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-          <div className="flex-1">
-            <p className="font-arabic text-2xl leading-relaxed text-foreground mb-2">
-              {dhikr.arabic}
-            </p>
-            {dhikr.repetitions && (
-              <span className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
-                {dhikr.repetitions}
-              </span>
-            )}
+}) => {
+  const dhikrId = `dhikr_${dhikr.arabic.substring(0, 20)}`;
+  const [counter, setCounter] = useState(getDhikrCounter(dhikrId));
+
+  useEffect(() => {
+    setCounter(getDhikrCounter(dhikrId));
+  }, [dhikrId]);
+
+  const handleCounterClick = () => {
+    if (!dhikr.count) return;
+    
+    let currentCounter = counter;
+    if (!currentCounter) {
+      currentCounter = {
+        dhikrId,
+        remaining: dhikr.count,
+        total: dhikr.count,
+        lastReset: new Date().toISOString(),
+      };
+    }
+
+    const newRemaining = currentCounter.remaining - 1;
+    
+    if (newRemaining <= 0) {
+      toast.success("AlhamdulIllah! Completed!");
+      resetDhikrCounter(dhikrId, dhikr.count);
+      setCounter(getDhikrCounter(dhikrId));
+    } else {
+      const updatedCounter = { ...currentCounter, remaining: newRemaining };
+      saveDhikrCounter(updatedCounter);
+      setCounter(updatedCounter);
+    }
+  };
+
+  const handleReset = () => {
+    if (!dhikr.count) return;
+    resetDhikrCounter(dhikrId, dhikr.count);
+    setCounter(getDhikrCounter(dhikrId));
+    toast.success("Counter reset!");
+  };
+
+  const remaining = counter?.remaining ?? dhikr.count ?? 0;
+
+  return (
+    <Card className="bg-gradient-card shadow-soft animate-fade-in">
+      <CardContent className="pt-6 space-y-3">
+        <div className="text-right">
+          <div className="flex justify-between items-start gap-2">
+            <div className="flex gap-1">
+              {isCustom && onEdit && (
+                <Button variant="ghost" size="sm" onClick={onEdit} className="h-8 w-8 p-0">
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
+              {isCustom && onDelete && (
+                <Button variant="ghost" size="sm" onClick={onDelete} className="h-8 w-8 p-0 text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="font-arabic text-2xl leading-relaxed text-foreground mb-2">
+                {dhikr.arabic}
+              </p>
+              {dhikr.repetitions && (
+                <span className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                  {dhikr.repetitions}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-      <div className="space-y-1 pt-2 border-t border-border">
-        <p className="text-sm italic text-muted-foreground">
-          {dhikr.transliteration}
-        </p>
-        <p className="text-sm text-foreground">
-          {dhikr.translation}
-        </p>
-      </div>
-    </CardContent>
-  </Card>
-);
+        <div className="space-y-1 pt-2 border-t border-border">
+          <p className="text-sm italic text-muted-foreground">
+            {dhikr.transliteration}
+          </p>
+          <p className="text-sm text-foreground">
+            {dhikr.translation}
+          </p>
+        </div>
+        {dhikr.count && (
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={handleCounterClick}
+              variant={remaining === dhikr.count ? "default" : "secondary"}
+              size="lg"
+              className="flex-1 text-lg font-bold"
+            >
+              <MinusCircle className="w-5 h-5 mr-2" />
+              {remaining} / {dhikr.count}
+            </Button>
+            <Button
+              onClick={handleReset}
+              variant="outline"
+              size="icon"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 const AddDhikrDialog = ({ category, onSave, editDhikr }: { 
   category: 'morning' | 'evening' | 'general' | 'personal';

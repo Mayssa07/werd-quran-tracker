@@ -4,16 +4,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BookOpen, Plus, Settings as SettingsIcon } from "lucide-react";
+import { BookOpen, Plus, BookMarked } from "lucide-react";
 import { getTodayEntry, saveWerdEntry, getSettings, calculateStreak } from "@/lib/storage";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const Home = () => {
+  const navigate = useNavigate();
   const [todayEntry, setTodayEntry] = useState(getTodayEntry());
   const [settings, setSettings] = useState(getSettings());
   const [pagesInput, setPagesInput] = useState("");
+  const [fromPage, setFromPage] = useState("");
+  const [toPage, setToPage] = useState("");
   const [streak, setStreak] = useState(0);
+  const [logMode, setLogMode] = useState<"count" | "range">("count");
 
   useEffect(() => {
     setStreak(calculateStreak());
@@ -43,6 +49,35 @@ const Home = () => {
     setTodayEntry(entry);
     setPagesInput("");
     toast.success(`Logged ${pages} pages! MashAllah`);
+  };
+
+  const handleLogPageRange = () => {
+    const from = parseInt(fromPage);
+    const to = parseInt(toPage);
+    
+    if (isNaN(from) || isNaN(to) || from <= 0 || to <= 0 || from > to) {
+      toast.error("Please enter a valid page range");
+      return;
+    }
+
+    const pagesCount = to - from + 1;
+    const today = new Date().toISOString().split('T')[0];
+    const currentPages = todayEntry?.pagesRead || 0;
+    const newPages = currentPages + pagesCount;
+    
+    const entry = {
+      date: today,
+      pagesRead: newPages,
+      completed: newPages >= settings.goal.dailyPages,
+      fromPage: from,
+      toPage: to,
+    };
+
+    saveWerdEntry(entry);
+    setTodayEntry(entry);
+    setFromPage("");
+    setToPage("");
+    toast.success(`Logged pages ${from}-${to} (${pagesCount} pages)! MashAllah`);
   };
 
   return (
@@ -94,22 +129,62 @@ const Home = () => {
             </div>
 
             {/* Log Pages */}
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Input
-                  type="number"
-                  placeholder="Pages read..."
-                  value={pagesInput}
-                  onChange={(e) => setPagesInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleLogPages()}
-                  className="text-lg"
-                />
-              </div>
-              <Button onClick={handleLogPages} className="gap-2">
-                <Plus className="w-4 h-4" />
-                Log
-              </Button>
-            </div>
+            <Tabs value={logMode} onValueChange={(v) => setLogMode(v as "count" | "range")}>
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="count">Page Count</TabsTrigger>
+                <TabsTrigger value="range">Page Range</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="count" className="mt-0">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Input
+                      type="number"
+                      placeholder="Pages read..."
+                      value={pagesInput}
+                      onChange={(e) => setPagesInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleLogPages()}
+                      className="text-lg"
+                    />
+                  </div>
+                  <Button onClick={handleLogPages} className="gap-2">
+                    <Plus className="w-4 h-4" />
+                    Log
+                  </Button>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="range" className="mt-0 space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    placeholder="From page"
+                    value={fromPage}
+                    onChange={(e) => setFromPage(e.target.value)}
+                    className="flex-1"
+                  />
+                  <span className="flex items-center text-muted-foreground">-</span>
+                  <Input
+                    type="number"
+                    placeholder="To page"
+                    value={toPage}
+                    onChange={(e) => setToPage(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleLogPageRange()}
+                    className="flex-1"
+                  />
+                </div>
+                <Button onClick={handleLogPageRange} className="w-full gap-2">
+                  <Plus className="w-4 h-4" />
+                  Log Range
+                </Button>
+              </TabsContent>
+            </Tabs>
+
+            {todayEntry?.fromPage && todayEntry?.toPage && (
+              <p className="text-sm text-muted-foreground text-center">
+                Last read: Pages {todayEntry.fromPage}-{todayEntry.toPage}
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -128,6 +203,17 @@ const Home = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Quran Viewer Card */}
+        <Card className="bg-gradient-card shadow-soft cursor-pointer hover:shadow-medium transition-shadow" onClick={() => navigate('/quran')}>
+          <CardContent className="pt-6 text-center space-y-3">
+            <BookMarked className="w-12 h-12 mx-auto text-primary" />
+            <div>
+              <p className="font-semibold text-foreground">Open Quran Viewer</p>
+              <p className="text-sm text-muted-foreground">Read the Noble Quran</p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Quranic Verse */}
         <Card className="bg-card shadow-soft border-primary/20">
