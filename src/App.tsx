@@ -7,6 +7,7 @@ import Home from "./pages/Home";
 import Adhkar from "./pages/Adhkar";
 import Sebha from "./pages/Sebha";
 import More from "./pages/More";
+import QuranViewer from "./pages/QuranViewer";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
 
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/adhkar" element={<Adhkar />} />
           <Route path="/sebha" element={<Sebha />} />
           <Route path="/more" element={<More />} />
+          <Route path="/quran" element={<QuranViewer />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

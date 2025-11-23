@@ -5,6 +5,15 @@ export interface WerdEntry {
   pagesRead: number;
   ayatRead?: number;
   completed: boolean;
+  fromPage?: number;
+  toPage?: number;
+}
+
+export interface DhikrCounter {
+  dhikrId: string;
+  remaining: number;
+  total: number;
+  lastReset: string;
 }
 
 export interface WerdGoal {
@@ -25,6 +34,7 @@ export interface CustomDhikr {
   transliteration: string;
   translation: string;
   repetitions?: string;
+  count?: number;
   category: 'morning' | 'evening' | 'general' | 'personal';
 }
 
@@ -40,6 +50,7 @@ const STORAGE_KEYS = {
   TASBEEH_COUNT: 'tasbeeh_count',
   CUSTOM_ADHKAR: 'custom_adhkar',
   TASBEEH_PHRASES: 'tasbeeh_phrases',
+  DHIKR_COUNTERS: 'dhikr_counters',
 } as const;
 
 // Werd Entries
@@ -148,25 +159,68 @@ export const deleteTasbeehPhrase = (id: string): void => {
 
 // Calculate streak
 export const calculateStreak = (): number => {
-  const entries = getWerdEntries().sort((a, b) => b.date.localeCompare(a.date));
-  let streak = 0;
-  const today = new Date();
+  const entries = getWerdEntries();
+  if (entries.length === 0) return 0;
+
+  const sortedEntries = entries
+    .filter(e => e.completed)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  if (sortedEntries.length === 0) return 0;
+
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
   
-  for (let i = 0; i < entries.length; i++) {
-    const entryDate = new Date(entries[i].date);
-    const expectedDate = new Date(today);
-    expectedDate.setDate(today.getDate() - streak);
-    
-    if (entryDate.toISOString().split('T')[0] === expectedDate.toISOString().split('T')[0]) {
-      if (entries[i].completed) {
-        streak++;
-      } else {
-        break;
-      }
+  if (sortedEntries[0].date !== today && sortedEntries[0].date !== yesterday) {
+    return 0;
+  }
+
+  let streak = 0;
+  let currentDate = new Date();
+  
+  for (const entry of sortedEntries) {
+    const entryDate = currentDate.toISOString().split('T')[0];
+    if (entry.date === entryDate) {
+      streak++;
+      currentDate = new Date(currentDate.getTime() - 86400000);
     } else {
       break;
     }
   }
   
   return streak;
+};
+
+// Dhikr Counter Management
+export const getDhikrCounters = (): DhikrCounter[] => {
+  const stored = localStorage.getItem(STORAGE_KEYS.DHIKR_COUNTERS);
+  return stored ? JSON.parse(stored) : [];
+};
+
+export const getDhikrCounter = (dhikrId: string): DhikrCounter | null => {
+  const counters = getDhikrCounters();
+  return counters.find(c => c.dhikrId === dhikrId) || null;
+};
+
+export const saveDhikrCounter = (counter: DhikrCounter) => {
+  const counters = getDhikrCounters();
+  const index = counters.findIndex(c => c.dhikrId === counter.dhikrId);
+  
+  if (index >= 0) {
+    counters[index] = counter;
+  } else {
+    counters.push(counter);
+  }
+  
+  localStorage.setItem(STORAGE_KEYS.DHIKR_COUNTERS, JSON.stringify(counters));
+};
+
+export const resetDhikrCounter = (dhikrId: string, total: number) => {
+  const counter: DhikrCounter = {
+    dhikrId,
+    remaining: total,
+    total,
+    lastReset: new Date().toISOString(),
+  };
+  saveDhikrCounter(counter);
 };
