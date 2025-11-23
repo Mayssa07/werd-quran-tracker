@@ -1,18 +1,31 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { RotateCcw, Vibrate } from "lucide-react";
-import { getTasbeehCount, saveTasbeehCount } from "@/lib/storage";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { RotateCcw, Plus, Trash2 } from "lucide-react";
+import { getTasbeehCount, saveTasbeehCount, getTasbeehPhrases, saveTasbeehPhrase, deleteTasbeehPhrase, TasbeehPhrase } from "@/lib/storage";
 
 const Sebha = () => {
   const [count, setCount] = useState(getTasbeehCount());
+  const [phrases, setPhrases] = useState<TasbeehPhrase[]>([]);
+  const [selectedPhrase, setSelectedPhrase] = useState<TasbeehPhrase | null>(null);
+
+  useEffect(() => {
+    const loadedPhrases = getTasbeehPhrases();
+    setPhrases(loadedPhrases);
+    if (loadedPhrases.length > 0) {
+      setSelectedPhrase(loadedPhrases[0]);
+    }
+  }, []);
 
   useEffect(() => {
     saveTasbeehCount(count);
   }, [count]);
 
   const handleIncrement = () => {
-    // Haptic feedback (if supported)
     if (navigator.vibrate) {
       navigator.vibrate(10);
     }
@@ -22,6 +35,22 @@ const Sebha = () => {
   const handleReset = () => {
     if (confirm("Are you sure you want to reset the counter?")) {
       setCount(0);
+    }
+  };
+
+  const refreshPhrases = () => {
+    const loadedPhrases = getTasbeehPhrases();
+    setPhrases(loadedPhrases);
+  };
+
+  const handleDeletePhrase = (id: string) => {
+    if (confirm("Are you sure you want to delete this phrase?")) {
+      deleteTasbeehPhrase(id);
+      refreshPhrases();
+      if (selectedPhrase?.id === id) {
+        const remaining = getTasbeehPhrases();
+        setSelectedPhrase(remaining.length > 0 ? remaining[0] : null);
+      }
     }
   };
 
@@ -38,6 +67,16 @@ const Sebha = () => {
           <h1 className="text-3xl font-bold text-foreground">Tasbeeh Counter</h1>
           <p className="text-muted-foreground">Digital Sebha for dhikr</p>
         </div>
+
+        {/* Current Phrase Display */}
+        {selectedPhrase && (
+          <Card className="bg-gradient-card shadow-soft">
+            <CardContent className="pt-6 pb-6 text-center space-y-2">
+              <p className="font-arabic text-3xl text-foreground">{selectedPhrase.arabic}</p>
+              <p className="text-sm text-muted-foreground italic">{selectedPhrase.transliteration}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Main Counter Card */}
         <Card className="bg-gradient-card shadow-medium">
@@ -85,28 +124,114 @@ const Sebha = () => {
           </CardContent>
         </Card>
 
-        {/* Common Dhikr Suggestions */}
+        {/* Phrases List */}
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-foreground">Common Dhikr:</h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-foreground">Tasbeeh Phrases:</h3>
+            <AddPhraseDialog onSave={refreshPhrases} />
+          </div>
+          
           <Card className="bg-card shadow-soft">
-            <CardContent className="pt-4 pb-4 space-y-3">
-              <div className="text-center space-y-1">
-                <p className="font-arabic text-xl text-foreground">سُبْحَانَ اللّهِ</p>
-                <p className="text-sm text-muted-foreground">SubhanAllah (Glory be to Allah) - 33x</p>
-              </div>
-              <div className="text-center space-y-1">
-                <p className="font-arabic text-xl text-foreground">الْحَمْدُ لِلّهِ</p>
-                <p className="text-sm text-muted-foreground">Alhamdulillah (All praise to Allah) - 33x</p>
-              </div>
-              <div className="text-center space-y-1">
-                <p className="font-arabic text-xl text-foreground">اللّهُ أَكْبَرُ</p>
-                <p className="text-sm text-muted-foreground">Allahu Akbar (Allah is the Greatest) - 34x</p>
-              </div>
+            <CardContent className="pt-4 pb-4">
+              <ScrollArea className="max-h-[300px]">
+                <div className="space-y-2">
+                  {phrases.map((phrase) => (
+                    <div
+                      key={phrase.id}
+                      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
+                        selectedPhrase?.id === phrase.id
+                          ? 'bg-primary/10 border border-primary'
+                          : 'hover:bg-muted'
+                      }`}
+                      onClick={() => setSelectedPhrase(phrase)}
+                    >
+                      <div className="flex-1 text-center space-y-1">
+                        <p className="font-arabic text-xl text-foreground">{phrase.arabic}</p>
+                        <p className="text-sm text-muted-foreground">{phrase.transliteration}</p>
+                      </div>
+                      {phrases.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletePhrase(phrase.id);
+                          }}
+                          className="ml-2 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </div>
       </div>
     </div>
+  );
+};
+
+const AddPhraseDialog = ({ onSave }: { onSave: () => void }) => {
+  const [open, setOpen] = useState(false);
+  const [arabic, setArabic] = useState("");
+  const [transliteration, setTransliteration] = useState("");
+
+  const handleSave = () => {
+    if (arabic && transliteration) {
+      const phrase: TasbeehPhrase = {
+        id: Date.now().toString(),
+        arabic,
+        transliteration,
+      };
+      saveTasbeehPhrase(phrase);
+      setOpen(false);
+      setArabic("");
+      setTransliteration("");
+      onSave();
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2">
+          <Plus className="w-4 h-4" />
+          Add Phrase
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Add Tasbeeh Phrase</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="phrase-arabic">Arabic Text</Label>
+            <Input
+              id="phrase-arabic"
+              value={arabic}
+              onChange={(e) => setArabic(e.target.value)}
+              placeholder="Enter Arabic text"
+              className="font-arabic text-xl text-right"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phrase-transliteration">Transliteration</Label>
+            <Input
+              id="phrase-transliteration"
+              value={transliteration}
+              onChange={(e) => setTransliteration(e.target.value)}
+              placeholder="Enter transliteration"
+            />
+          </div>
+          <Button onClick={handleSave} className="w-full">
+            Save Phrase
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
