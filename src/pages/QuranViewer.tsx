@@ -2,23 +2,21 @@ import { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BookOpen } from "lucide-react";
 
-interface Ayah {
-  number: number;
+interface Verse {
+  id: number;
   text: string;
 }
 
 interface Surah {
-  number: number;
+  id: number;
   name: string;
-  ayahs: Ayah[];
-}
-
-interface QuranData {
-  surahs: Surah[];
+  transliteration: string;
+  total_verses: number;
+  verses: Verse[];
 }
 
 const QuranViewer = () => {
-  const [quranData, setQuranData] = useState<QuranData | null>(null);
+  const [quranData, setQuranData] = useState<Surah[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,7 +43,7 @@ const QuranViewer = () => {
     );
   }
 
-  if (!quranData || !quranData.surahs || quranData.surahs.length === 0) {
+  if (!quranData || quranData.length === 0) {
     return (
       <div className="min-h-screen bg-background pb-24 px-4 pt-6">
         <div className="max-w-2xl mx-auto text-center space-y-4">
@@ -70,34 +68,34 @@ const QuranViewer = () => {
 
       <ScrollArea className="h-[calc(100vh-8rem)]">
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
-          {quranData.surahs.map((surah) => (
-            <div key={surah.number} className="space-y-4">
+          {quranData.map((surah) => (
+            <div key={surah.id} className="space-y-4">
               {/* Surah Header */}
               <div className="bg-gradient-card rounded-lg p-4 text-center border border-primary/20">
                 <h2 className="text-2xl font-bold text-foreground">
                   {surah.name}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  سورة {surah.name} - Surah {surah.number}
+                  {surah.transliteration} - Surah {surah.id}
                 </p>
               </div>
 
-              {/* Ayahs */}
+              {/* Verses */}
               <div className="space-y-4">
-                {surah.ayahs.map((ayah) => (
+                {surah.verses.map((verse) => (
                   <div
-                    key={ayah.number}
+                    key={verse.id}
                     className="bg-card/50 rounded-lg p-4 border border-border/50 hover:border-primary/30 transition-colors"
                   >
                     <div className="flex items-start gap-3">
                       <span className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold">
-                        {ayah.number}
+                        {verse.id}
                       </span>
                       <p
                         className="flex-1 text-right font-arabic text-2xl leading-loose text-foreground"
                         dir="rtl"
                       >
-                        {ayah.text}
+                        {verse.text}
                       </p>
                     </div>
                   </div>
