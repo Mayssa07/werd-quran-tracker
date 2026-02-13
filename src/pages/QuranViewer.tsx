@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { BookOpen, ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Settings2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import { getSettings, saveSettings } from "@/lib/storage";
 import type { WerdRange } from "@/lib/storage";
 import { toast } from "sonner";
@@ -30,11 +33,17 @@ const QuranViewer = () => {
   const [werdSettingsOpen, setWerdSettingsOpen] = useState(false);
   const [werdRange, setWerdRange] = useState<WerdRange | undefined>();
 
-  // Temp state for werd dialog
+  // Temp state for range mode
   const [startSurah, setStartSurah] = useState("1");
   const [startAyah, setStartAyah] = useState("1");
   const [endSurah, setEndSurah] = useState("1");
   const [endAyah, setEndAyah] = useState("7");
+
+  // Temp state for surahs mode
+  const [selectedSurahs, setSelectedSurahs] = useState<number[]>([]);
+
+  // Tab mode
+  const [werdMode, setWerdMode] = useState<"range" | "surahs">("range");
 
   useEffect(() => {
     const loadQuranData = async () => {
@@ -54,15 +63,21 @@ const QuranViewer = () => {
   useEffect(() => {
     const settings = getSettings();
     if (settings.werdRange) {
-      setWerdRange(settings.werdRange);
-      setStartSurah(String(settings.werdRange.startSurah));
-      setStartAyah(String(settings.werdRange.startAyah));
-      setEndSurah(String(settings.werdRange.endSurah));
-      setEndAyah(String(settings.werdRange.endAyah));
+      const wr = settings.werdRange;
+      setWerdRange(wr);
+      setWerdMode(wr.mode || "range");
+      if (wr.mode === "surahs" && wr.selectedSurahs) {
+        setSelectedSurahs(wr.selectedSurahs);
+      } else {
+        setStartSurah(String(wr.startSurah || 1));
+        setStartAyah(String(wr.startAyah || 1));
+        setEndSurah(String(wr.endSurah || 1));
+        setEndAyah(String(wr.endAyah || 7));
+      }
     }
   }, []);
 
-  // Flatten all verses into pages
+  // Flatten all verses
   const allVerses = useMemo(() => {
     if (!quranData) return [];
     const verses: { surahId: number; surahName: string; transliteration: string; verse: Verse }[] = [];
@@ -79,15 +94,25 @@ const QuranViewer = () => {
     return verses;
   }, [quranData]);
 
-  // Filter to werd range if set
+  // Filter to werd
   const werdVerses = useMemo(() => {
     if (!werdRange || allVerses.length === 0) return allVerses;
-    return allVerses.filter((v) => {
-      const pos = v.surahId * 1000 + v.verse.id;
-      const startPos = werdRange.startSurah * 1000 + werdRange.startAyah;
-      const endPos = werdRange.endSurah * 1000 + werdRange.endAyah;
-      return pos >= startPos && pos <= endPos;
-    });
+
+    if (werdRange.mode === "surahs" && werdRange.selectedSurahs?.length) {
+      const surahSet = new Set(werdRange.selectedSurahs);
+      return allVerses.filter((v) => surahSet.has(v.surahId));
+    }
+
+    if (werdRange.mode === "range" && werdRange.startSurah && werdRange.endSurah) {
+      return allVerses.filter((v) => {
+        const pos = v.surahId * 1000 + v.verse.id;
+        const startPos = werdRange.startSurah! * 1000 + (werdRange.startAyah || 1);
+        const endPos = werdRange.endSurah! * 1000 + (werdRange.endAyah || 999);
+        return pos >= startPos && pos <= endPos;
+      });
+    }
+
+    return allVerses;
   }, [allVerses, werdRange]);
 
   // Paginate
@@ -104,42 +129,62 @@ const QuranViewer = () => {
 
   const goNext = useCallback(() => {
     setCurrentPage((p) => Math.min(p + 1, totalPages - 1));
+    window.scrollTo({ top: 0 });
   }, [totalPages]);
 
   const goPrev = useCallback(() => {
     setCurrentPage((p) => Math.max(p - 1, 0));
+    window.scrollTo({ top: 0 });
   }, []);
 
-  // Get max ayah for a given surah
   const getMaxAyah = (surahId: number) => {
     if (!quranData) return 1;
     const surah = quranData.find((s) => s.id === surahId);
     return surah ? surah.total_verses : 1;
   };
 
+  const toggleSurah = (surahId: number) => {
+    setSelectedSurahs((prev) =>
+      prev.includes(surahId) ? prev.filter((id) => id !== surahId) : [...prev, surahId]
+    );
+  };
+
   const handleSaveWerd = () => {
-    const range: WerdRange = {
-      startSurah: parseInt(startSurah),
-      startAyah: parseInt(startAyah),
-      endSurah: parseInt(endSurah),
-      endAyah: parseInt(endAyah),
-    };
-
-    // Validate
-    const startPos = range.startSurah * 1000 + range.startAyah;
-    const endPos = range.endSurah * 1000 + range.endAyah;
-    if (endPos < startPos) {
-      toast.error("End position must come after start position");
-      return;
+    if (werdMode === "range") {
+      const range: WerdRange = {
+        mode: "range",
+        startSurah: parseInt(startSurah),
+        startAyah: parseInt(startAyah),
+        endSurah: parseInt(endSurah),
+        endAyah: parseInt(endAyah),
+      };
+      const startPos = range.startSurah! * 1000 + range.startAyah!;
+      const endPos = range.endSurah! * 1000 + range.endAyah!;
+      if (endPos < startPos) {
+        toast.error("End position must come after start position");
+        return;
+      }
+      const settings = getSettings();
+      settings.werdRange = range;
+      saveSettings(settings);
+      setWerdRange(range);
+    } else {
+      if (selectedSurahs.length === 0) {
+        toast.error("Select at least one Surah");
+        return;
+      }
+      const range: WerdRange = {
+        mode: "surahs",
+        selectedSurahs: [...selectedSurahs].sort((a, b) => a - b),
+      };
+      const settings = getSettings();
+      settings.werdRange = range;
+      saveSettings(settings);
+      setWerdRange(range);
     }
-
-    const settings = getSettings();
-    settings.werdRange = range;
-    saveSettings(settings);
-    setWerdRange(range);
     setCurrentPage(0);
     setWerdSettingsOpen(false);
-    toast.success("Werd range saved!");
+    toast.success("Werd saved!");
   };
 
   const handleClearWerd = () => {
@@ -147,25 +192,11 @@ const QuranViewer = () => {
     delete settings.werdRange;
     saveSettings(settings);
     setWerdRange(undefined);
+    setSelectedSurahs([]);
     setCurrentPage(0);
     setWerdSettingsOpen(false);
     toast.success("Showing full Quran");
   };
-
-  // Detect surah changes on current page for headers
-  const surahHeaders = useMemo(() => {
-    const headers = new Set<number>();
-    for (const v of currentVerses) {
-      if (v.verse.id === 1) {
-        headers.add(v.surahId);
-      }
-    }
-    // Also add the surah of the first verse if it's the first page or first verse on page
-    if (currentVerses.length > 0) {
-      headers.add(currentVerses[0].surahId);
-    }
-    return headers;
-  }, [currentVerses]);
 
   if (loading) {
     return (
@@ -200,7 +231,9 @@ const QuranViewer = () => {
           <div className="flex items-center gap-2">
             {werdRange && (
               <span className="text-xs text-muted-foreground bg-primary/10 px-2 py-1 rounded-full">
-                Werd Active
+                {werdRange.mode === "surahs"
+                  ? `${werdRange.selectedSurahs?.length} Surahs`
+                  : "Werd Active"}
               </span>
             )}
             <Dialog open={werdSettingsOpen} onOpenChange={setWerdSettingsOpen}>
@@ -209,83 +242,108 @@ const QuranViewer = () => {
                   <Settings2 className="w-5 h-5" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-sm">
+              <DialogContent className="max-w-sm max-h-[85vh] flex flex-col">
                 <DialogHeader>
                   <DialogTitle>Set Your Werd</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 pt-2">
-                  {/* Start */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold">Start From</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Select value={startSurah} onValueChange={(v) => { setStartSurah(v); setStartAyah("1"); }}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Surah" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-60 bg-popover z-50">
-                          {quranData.map((s) => (
-                            <SelectItem key={s.id} value={String(s.id)}>
-                              {s.id}. {s.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select value={startAyah} onValueChange={setStartAyah}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Ayah" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-60 bg-popover z-50">
-                          {Array.from({ length: getMaxAyah(parseInt(startSurah)) }, (_, i) => (
-                            <SelectItem key={i + 1} value={String(i + 1)}>
-                              Ayah {i + 1}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
 
-                  {/* End */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold">End At</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Select value={endSurah} onValueChange={(v) => { setEndSurah(v); setEndAyah(String(getMaxAyah(parseInt(v)))); }}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Surah" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-60 bg-popover z-50">
-                          {quranData.map((s) => (
-                            <SelectItem key={s.id} value={String(s.id)}>
-                              {s.id}. {s.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select value={endAyah} onValueChange={setEndAyah}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Ayah" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-60 bg-popover z-50">
-                          {Array.from({ length: getMaxAyah(parseInt(endSurah)) }, (_, i) => (
-                            <SelectItem key={i + 1} value={String(i + 1)}>
-                              Ayah {i + 1}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                <Tabs value={werdMode} onValueChange={(v) => setWerdMode(v as "range" | "surahs")} className="flex-1 flex flex-col min-h-0">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="range">Range</TabsTrigger>
+                    <TabsTrigger value="surahs">Pick Surahs</TabsTrigger>
+                  </TabsList>
 
-                  <div className="flex gap-2 pt-2">
-                    <Button onClick={handleSaveWerd} className="flex-1">
-                      Save Werd
-                    </Button>
-                    {werdRange && (
-                      <Button variant="outline" onClick={handleClearWerd}>
-                        Clear
-                      </Button>
-                    )}
-                  </div>
+                  <TabsContent value="range" className="space-y-4 pt-2">
+                    {/* Start */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold">Start From</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Select value={startSurah} onValueChange={(v) => { setStartSurah(v); setStartAyah("1"); }}>
+                          <SelectTrigger><SelectValue placeholder="Surah" /></SelectTrigger>
+                          <SelectContent className="max-h-60 bg-popover z-50">
+                            {quranData.map((s) => (
+                              <SelectItem key={s.id} value={String(s.id)}>
+                                {s.id}. {s.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={startAyah} onValueChange={setStartAyah}>
+                          <SelectTrigger><SelectValue placeholder="Ayah" /></SelectTrigger>
+                          <SelectContent className="max-h-60 bg-popover z-50">
+                            {Array.from({ length: getMaxAyah(parseInt(startSurah)) }, (_, i) => (
+                              <SelectItem key={i + 1} value={String(i + 1)}>Ayah {i + 1}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    {/* End */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold">End At</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Select value={endSurah} onValueChange={(v) => { setEndSurah(v); setEndAyah(String(getMaxAyah(parseInt(v)))); }}>
+                          <SelectTrigger><SelectValue placeholder="Surah" /></SelectTrigger>
+                          <SelectContent className="max-h-60 bg-popover z-50">
+                            {quranData.map((s) => (
+                              <SelectItem key={s.id} value={String(s.id)}>
+                                {s.id}. {s.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={endAyah} onValueChange={setEndAyah}>
+                          <SelectTrigger><SelectValue placeholder="Ayah" /></SelectTrigger>
+                          <SelectContent className="max-h-60 bg-popover z-50">
+                            {Array.from({ length: getMaxAyah(parseInt(endSurah)) }, (_, i) => (
+                              <SelectItem key={i + 1} value={String(i + 1)}>Ayah {i + 1}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="surahs" className="flex-1 min-h-0 pt-2">
+                    <Label className="text-sm font-semibold mb-2 block">
+                      Select Surahs ({selectedSurahs.length} selected)
+                    </Label>
+                    <ScrollArea className="h-[280px] border border-border rounded-lg">
+                      <div className="p-2 space-y-1">
+                        {quranData.map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => toggleSurah(s.id)}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors text-sm ${
+                              selectedSurahs.includes(s.id)
+                                ? "bg-primary/10 text-primary"
+                                : "hover:bg-muted text-foreground"
+                            }`}
+                          >
+                            <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
+                              selectedSurahs.includes(s.id)
+                                ? "bg-primary border-primary"
+                                : "border-border"
+                            }`}>
+                              {selectedSurahs.includes(s.id) && (
+                                <Check className="w-3 h-3 text-primary-foreground" />
+                              )}
+                            </div>
+                            <span className="flex-shrink-0 text-muted-foreground w-7">{s.id}.</span>
+                            <span className="font-arabic">{s.name}</span>
+                            <span className="text-xs text-muted-foreground ml-auto">{s.transliteration}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+                </Tabs>
+
+                <div className="flex gap-2 pt-3">
+                  <Button onClick={handleSaveWerd} className="flex-1">Save Werd</Button>
+                  {werdRange && (
+                    <Button variant="outline" onClick={handleClearWerd}>Clear</Button>
+                  )}
                 </div>
               </DialogContent>
             </Dialog>
@@ -302,17 +360,13 @@ const QuranViewer = () => {
         ) : (
           <div className="space-y-3">
             {currentVerses.map((item, idx) => {
-              const showSurahHeader =
-                item.verse.id === 1 ||
-                (idx === 0 && !currentVerses.some((v, i) => i < idx && v.surahId === item.surahId));
-
-              const isFirstOnPage = idx === 0;
               const prevItem = idx > 0 ? currentVerses[idx - 1] : null;
-              const surahChanged = prevItem && prevItem.surahId !== item.surahId;
+              const surahChanged = !prevItem || prevItem.surahId !== item.surahId;
+              const isNewSurah = item.verse.id === 1 || surahChanged;
 
               return (
                 <div key={`${item.surahId}-${item.verse.id}`}>
-                  {(item.verse.id === 1 || (isFirstOnPage && !prevItem) || surahChanged) && (
+                  {isNewSurah && (
                     <div className="bg-gradient-card rounded-lg p-3 text-center border border-primary/20 mb-3">
                       <h2 className="text-xl font-bold text-foreground">{item.surahName}</h2>
                       <p className="text-xs text-muted-foreground">
@@ -325,10 +379,7 @@ const QuranViewer = () => {
                       <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
                         {item.verse.id}
                       </span>
-                      <p
-                        className="flex-1 text-right font-arabic text-xl leading-[2.2] text-foreground"
-                        dir="rtl"
-                      >
+                      <p className="flex-1 text-right font-arabic text-xl leading-[2.2] text-foreground" dir="rtl">
                         {item.verse.text}
                       </p>
                     </div>
@@ -344,28 +395,14 @@ const QuranViewer = () => {
       {totalPages > 1 && (
         <div className="sticky bottom-20 bg-background/95 backdrop-blur-sm border-t border-border px-4 py-3">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={goPrev}
-              disabled={currentPage === 0}
-              className="gap-1"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
+            <Button variant="ghost" size="sm" onClick={goPrev} disabled={currentPage === 0} className="gap-1">
+              <ChevronLeft className="w-4 h-4" /> Previous
             </Button>
             <span className="text-sm text-muted-foreground">
               {currentPage + 1} / {totalPages}
             </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={goNext}
-              disabled={currentPage === totalPages - 1}
-              className="gap-1"
-            >
-              Next
-              <ChevronRight className="w-4 h-4" />
+            <Button variant="ghost" size="sm" onClick={goNext} disabled={currentPage === totalPages - 1} className="gap-1">
+              Next <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
