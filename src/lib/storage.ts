@@ -21,11 +21,19 @@ export interface WerdGoal {
   dailyAyat?: number;
 }
 
+export interface WerdRange {
+  startSurah: number;
+  startAyah: number;
+  endSurah: number;
+  endAyah: number;
+}
+
 export interface AppSettings {
   goal: WerdGoal;
   reminderEnabled: boolean;
   reminderTime: string; // HH:mm format
   lastTasbeehCount: number;
+  werdRange?: WerdRange;
 }
 
 export interface CustomDhikr {
