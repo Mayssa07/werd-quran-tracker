@@ -22,10 +22,14 @@ export interface WerdGoal {
 }
 
 export interface WerdRange {
-  startSurah: number;
-  startAyah: number;
-  endSurah: number;
-  endAyah: number;
+  mode: 'range' | 'surahs';
+  // For range mode
+  startSurah?: number;
+  startAyah?: number;
+  endSurah?: number;
+  endAyah?: number;
+  // For surahs mode (individual surahs)
+  selectedSurahs?: number[];
 }
 
 export interface AppSettings {
