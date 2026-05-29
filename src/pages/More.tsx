@@ -128,6 +128,21 @@ const More = () => {
                 />
               </div>
             )}
+
+            {/* Refresh Logo */}
+            <div className="flex items-center justify-between py-2 border-t border-border/50 pt-4">
+              <div className="space-y-0.5">
+                <Label className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  Refresh Logo
+                </Label>
+                <p className="text-sm text-muted-foreground">Force-reload the logo if it looks stale</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleRefreshLogo} className="gap-1">
+                <RefreshCw className="w-4 h-4" />
+                Refresh
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
