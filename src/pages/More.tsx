@@ -43,6 +43,16 @@ const More = () => {
     toast.success(enabled ? "Reminders enabled" : "Reminders disabled");
   };
 
+  const handleRefreshLogo = () => {
+    const newSettings = {
+      ...settings,
+      logoCacheBuster: Date.now(),
+    };
+    saveSettings(newSettings);
+    setSettings(newSettings);
+    toast.success("Logo refreshed!");
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24 px-4 pt-6">
       <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
