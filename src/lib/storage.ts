@@ -38,6 +38,7 @@ export interface AppSettings {
   reminderTime: string; // HH:mm format
   lastTasbeehCount: number;
   werdRange?: WerdRange;
+  logoCacheBuster: number;
 }
 
 export interface CustomDhikr {
