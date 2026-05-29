@@ -84,8 +84,7 @@ const Home = () => {
     <div className="min-h-screen bg-background pb-24 px-4 pt-6">
       <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">السلام عليكم</h1>
+        <div className="text-center space-y-2 pt-4">
           <p className="text-muted-foreground">Track your daily Qur'an reading</p>
         </div>
 
