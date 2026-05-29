@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Compass, History, Settings as SettingsIcon, Bell, Target } from "lucide-react";
+import { Compass, History, Settings as SettingsIcon, Bell, Target, RefreshCw } from "lucide-react";
 import { getSettings, saveSettings, getWerdEntries, calculateStreak } from "@/lib/storage";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
