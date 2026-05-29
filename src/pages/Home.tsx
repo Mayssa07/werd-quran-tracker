@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BookOpen, Plus, BookMarked } from "lucide-react";
 import { getTodayEntry, saveWerdEntry, getSettings, calculateStreak } from "@/lib/storage";
+import werdLogo from "@/assets/werd-logo.png";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -85,6 +86,7 @@ const Home = () => {
       <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
         {/* Header */}
         <div className="text-center space-y-2 pt-4">
+          <img src={werdLogo} alt="Werd logo" className="mx-auto h-24 w-auto" />
           <p className="text-muted-foreground">Track your daily Qur'an reading</p>
         </div>
 
