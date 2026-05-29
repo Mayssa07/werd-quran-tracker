@@ -38,6 +38,7 @@ export interface AppSettings {
   reminderTime: string; // HH:mm format
   lastTasbeehCount: number;
   werdRange?: WerdRange;
+  logoCacheBuster: number;
 }
 
 export interface CustomDhikr {
@@ -98,6 +99,7 @@ export const getSettings = (): AppSettings => {
     reminderEnabled: false,
     reminderTime: '09:00',
     lastTasbeehCount: 0,
+    logoCacheBuster: 0,
   };
 };
 

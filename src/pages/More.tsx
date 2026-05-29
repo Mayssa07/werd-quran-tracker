@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Compass, History, Settings as SettingsIcon, Bell, Target } from "lucide-react";
+import { Compass, History, Settings as SettingsIcon, Bell, Target, RefreshCw } from "lucide-react";
 import { getSettings, saveSettings, getWerdEntries, calculateStreak } from "@/lib/storage";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -41,6 +41,16 @@ const More = () => {
     saveSettings(newSettings);
     setSettings(newSettings);
     toast.success(enabled ? "Reminders enabled" : "Reminders disabled");
+  };
+
+  const handleRefreshLogo = () => {
+    const newSettings = {
+      ...settings,
+      logoCacheBuster: Date.now(),
+    };
+    saveSettings(newSettings);
+    setSettings(newSettings);
+    toast.success("Logo refreshed!");
   };
 
   return (
@@ -118,6 +128,21 @@ const More = () => {
                 />
               </div>
             )}
+
+            {/* Refresh Logo */}
+            <div className="flex items-center justify-between py-2 border-t border-border/50 pt-4">
+              <div className="space-y-0.5">
+                <Label className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  Refresh Logo
+                </Label>
+                <p className="text-sm text-muted-foreground">Force-reload the logo if it looks stale</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleRefreshLogo} className="gap-1">
+                <RefreshCw className="w-4 h-4" />
+                Refresh
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
