@@ -99,6 +99,7 @@ export const getSettings = (): AppSettings => {
     reminderEnabled: false,
     reminderTime: '09:00',
     lastTasbeehCount: 0,
+    logoCacheBuster: 0,
   };
 };
 
