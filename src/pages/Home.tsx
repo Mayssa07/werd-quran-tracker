@@ -86,7 +86,7 @@ const Home = () => {
       <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
         {/* Header */}
         <div className="text-center space-y-2 pt-4">
-          <img src={werdLogo} alt="Werd logo" className="mx-auto h-24 w-auto" />
+          <img src={`${werdLogo}?t=${settings.logoCacheBuster}`} alt="Werd logo" className="mx-auto h-24 w-auto" key={settings.logoCacheBuster} />
           <p className="text-muted-foreground">Track your daily Qur'an reading</p>
         </div>
 
