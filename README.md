@@ -1,73 +1,76 @@
-# Welcome to your Lovable project
+# Werd — Quran & Adhkar Tracker
 
-## Project info
+A modern web application designed to help users build a consistent daily Quran reading and Adhkar routine.
 
-**URL**: https://lovable.dev/projects/679ef71b-65a5-45ae-ba2a-b8a35ff6ca1f
+Werd provides a simple way to track daily Quran progress, maintain reading streaks, read Quran directly inside the application, and keep track of personal Adhkar and Sebha counts.
 
-## How can I edit this code?
+## ✨ Features
 
-There are several ways of editing your application.
+- 📖 **Quran Reader**
+  - Browse and read the Quran directly from the application
+  - Full Quran data included locally
+  - Easy navigation between Surahs
 
-**Use Lovable**
+- 📊 **Daily Werd Tracking**
+  - Track daily Quran reading progress
+  - Visual progress indicators
+  - Daily completion tracking
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/679ef71b-65a5-45ae-ba2a-b8a35ff6ca1f) and start prompting.
+- 🔥 **Reading Streaks**
+  - Track consecutive days of Quran reading
+  - Encourage consistency through progress and streak tracking
 
-Changes made via Lovable will be committed automatically to this repo.
+- 🤲 **Adhkar**
+  - Dedicated daily Adhkar section
+  - Custom Adhkar
+  - Individual counters for repeated Dhikr
 
-**Use your preferred IDE**
+- 📿 **Sebha**
+  - Digital Tasbih counter
+  - Simple and focused interface for Dhikr
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- ⚙️ **User Preferences**
+  - Persistent user settings
+  - Local progress storage
+  - Personalized experience
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- 📱 **Responsive Design**
+  - Designed for desktop and mobile screens
+  - Mobile-friendly navigation
 
-Follow these steps:
+## 🛠️ Tech Stack
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+| Technology | Purpose |
+|------------|---------|
+| React | Frontend framework |
+| TypeScript | Type-safe development |
+| Vite | Development environment and build tool |
+| Tailwind CSS | Styling |
+| shadcn/ui | UI components |
+| Supabase | Backend and data services |
+| React Router | Application navigation |
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 📂 Project Structure
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/679ef71b-65a5-45ae-ba2a-b8a35ff6ca1f) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```text
+werd-quran-tracker/
+├── public/
+│   ├── quran.json
+│   └── ...
+├── src/
+│   ├── components/
+│   ├── hooks/
+│   ├── integrations/
+│   │   └── supabase/
+│   ├── lib/
+│   ├── pages/
+│   │   ├── Adhkar.tsx
+│   │   ├── Home.tsx
+│   │   ├── QuranViewer.tsx
+│   │   ├── Sebha.tsx
+│   │   └── ...
+│   ├── App.tsx
+│   └── main.tsx
+├── .env.example
+├── package.json
+└── vite.config.ts
